@@ -1,0 +1,7 @@
+.build/
+dist/
+user/
+tools/
+.runtime/
+__pycache__/
+*.tmp
