@@ -238,11 +238,8 @@ proc ::quartus_qol::stop {} {
  post_message {Quartus QOL disabled for this session.}
 }
 if {[llength [info commands qol_native]] == 0 || [catch {qol_native version} native_version] || $native_version != 13} {
- set lib [file join $::quartus(binpath) edt_tedq.dll]
- set hash [exec [file join $::quartus_qol::home qolworker-v3.exe] [dict get $::quartus_qol::config python] -I -S -c {import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())} $lib]
- if {$hash ne {fd3982bf07b1b7ef227406cb612facff2646fb639f0df4eaeefa58cc30b9056d}} {
-  error {Quartus QOL supports Quartus Lite 24.1std build 1077 only; editor binary does not match.}
- }
+ source [file join $::quartus_qol::home compatibility.tcl]
+ ::quartus_qol::check_compatibility
  load [file join $::quartus_qol::home qolnative-v13.dll] Qolnative
 }
 if {[file exists [file join $::quartus_qol::user_home config.tcl]]} {source [file join $::quartus_qol::user_home config.tcl]}

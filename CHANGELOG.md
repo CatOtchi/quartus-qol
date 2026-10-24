@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- On untested Quartus builds, show a version warning with Cancel and I understand and continue instead of refusing installation outright.
+- Record acknowledgement for the exact editor/Options binaries; keep native interface checks active and require fresh acknowledgement after a binary change.
+- Allow uninstalling the startup hook after Quartus updates, without requiring the old binary hashes.
+
 ## 0.1.0
 
 First public Windows package for Quartus Prime Lite 24.1std build 1077.

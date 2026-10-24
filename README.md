@@ -2,7 +2,7 @@
 
 Slang diagnostics, Verible formatting, fuzzy completion and improved colors **inside Quartus's own editor**. No external editor or VS Code installation needed.
 
-**Supported: Windows x64, Quartus Prime Lite 24.1std build 1077.** Other versions and editions are unsupported; the installer checks the editor and Options DLLs and refuses incompatible builds. Linux is not supported yet.
+**Tested: Windows x64, Quartus Prime Lite 24.1std build 1077.** On other builds, the installer shows a warning with **Cancel** and **I understand and continue**. Continuing attempts an experimental installation; compatibility is not guaranteed. Linux is not supported yet.
 
 ![Slang squiggles and diagnostic hover in Quartus's native editor](docs/demo-diagnostics.png)
 
@@ -12,15 +12,19 @@ These are actual Quartus screenshots using the included demo. The surrounding Qu
 
 ## Download and install
 
-1. Download **QuartusQOL-0.1.0-windows-x64.zip** from [Releases](https://github.com/CatOtchi/quartus-qol/releases/latest) and extract it. A source ZIP or Git clone also works.
+1. Download the **QuartusQOL-…-windows-x64.zip** from [Releases](https://github.com/CatOtchi/quartus-qol/releases/latest) and extract it. A source ZIP or Git clone also works.
 2. Close Quartus, then double-click **Install.cmd**. Internet access is needed on the first install.
-3. The installer finds Quartus or asks for its folder. It downloads and verifies private copies of Slang, Verible, Python and Node—nothing needs to be on your PATH.
+3. The installer finds Quartus or asks for its folder. If its binaries differ from the tested build, choose **Cancel** to stop without changes or **I understand and continue** to try it experimentally. It downloads and verifies private copies of Slang, Verible, Python and Node—nothing needs to be on your PATH.
 4. Approve the administrator prompt **if** Windows protects the Quartus installation folder.
 5. Open Quartus normally and open a `.sv` or `.v` file. Save to format and check it.
 
 Windows may show a warning because this small community project is unsigned. Downloads come from the upstream projects over HTTPS and their archive SHA-256 values are pinned in `dependencies.json`.
 
 Files are installed under `%LOCALAPPDATA%\QuartusQOL`. You can delete the downloaded ZIP/folder after installation. After setup, the editor features run locally without network access or automatic updates.
+
+On an untested build, the installer asks before changing anything:
+
+![Untested version warning with Cancel and I understand and continue](docs/version-warning.png)
 
 ## What you get
 
@@ -68,7 +72,7 @@ Use a local installation path without braces. Install for your own Windows accou
 
 ## Troubleshooting and limits
 
-- **Unsupported build:** use the exact supported version. There is no unsafe override.
+- **Untested build:** accepting the installer warning records consent for that exact editor/Options DLL pair. Native signature and function checks still apply, so the extension may fail to start on incompatible interfaces. It may also crash; there is no guarantee of compatibility. After Quartus changes, rerun the installer to acknowledge the new build. Cancel, Escape and closing the dialog all cancel; Enter defaults to Cancel.
 - **No startup features:** check `app/.runtime/startup-error.txt` under the installed folder. Installation only edits a short marked block in `quartus/common/tcl/internal/qui_init.tcl`; Quartus DLLs are never modified.
 - **Download failure:** rerun the installer. Verified archives are cached; a checksum mismatch stops installation.
 - **Project-specific errors:** sources, top entity, include paths and macros are read from the project. Files only referenced through QIP/generated IP may need explicit configuration.

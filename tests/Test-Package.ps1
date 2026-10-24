@@ -11,7 +11,11 @@ try {
         Assert (!$errors) "PowerShell syntax: $($scriptFile.Name)"
     }
     Assert-CompatibleQuartus $QuartusRoot
+    & "$PSScriptRoot/Test-Compatibility.ps1"
     $tcl = Join-Path $QuartusRoot 'bin64/tclsh86.exe'
+    $compatibilityResult = & $tcl "$PSScriptRoot/compatibility.tcl" 2>&1
+    Assert (($compatibilityResult -join "`n") -match '^PASS:') "Runtime consent: $compatibilityResult"
+    Write-Host ($compatibilityResult -join "`n")
     $app = Join-Path $PreparedRoot app
     foreach ($test in @('test-completion.tcl','test-settings.tcl')) {
         $result = & $tcl (Join-Path $app $test) 2>&1

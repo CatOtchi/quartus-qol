@@ -28,4 +28,11 @@ The package was tested in an isolated directory on the development PC, not a cle
 
 The pinned Verible archive is published under `v0.0-4294-gc1d8f5e8`; its executable reports `v0.0-4222-g9e422385`. The downloaded archive's checksum matches the upstream release asset. The package pins the archive exactly rather than silently selecting a different build.
 
-Other Quartus editions/builds, Linux, VHDL and multi-user shared installations have not been validated. The exact binary checks remain enabled.
+Other Quartus editions/builds, Linux, VHDL and multi-user shared installations have not been validated.
+
+## 0.1.1 compatibility flow
+
+- Logic tests cover the tested build without a warning, Cancel, Continue, exact-pair consent and invalidating consent when either binary changes.
+- Tcl tests verify that runtime consent is parsed as data and applies only to the acknowledged pair. Native signature/export checks remain enabled.
+- Inspected the native Windows warning with a synthetic version number. Both labels and warning text were visible; Continue returned acknowledgement and Cancel returned refusal through the installer helper. This was a dialog-only test and did not install against a different Quartus version.
+- Accepting the warning has not been tested against an actual different Quartus build; it permits an experimental attempt, not a compatibility claim.

@@ -14,7 +14,7 @@ try {
     if ($InstallRoot.TrimEnd('\') -eq $source.TrimEnd('\')) { throw 'Install into a different directory from the download.' }
     $ownership = Join-Path $InstallRoot '.quartus-qol-install'
     if (!(Test-Path $ownership) -and ((Test-Path (Join-Path $InstallRoot app)) -or (Test-Path (Join-Path $InstallRoot app-previous)))) { throw 'This directory already has an app folder and is not a QOL-managed install. Choose a new folder.' }
-    if (!$PrepareOnly) { $QuartusRoot = Get-QuartusRoot $QuartusRoot; Assert-CompatibleQuartus $QuartusRoot }
+    if (!$PrepareOnly) { $QuartusRoot = Get-QuartusRoot $QuartusRoot; $fingerprint = Confirm-QuartusCompatibility $QuartusRoot }
     New-Item -ItemType Directory -Force -Path $InstallRoot,(Join-Path $InstallRoot 'user'),(Join-Path $InstallRoot 'tools'),(Join-Path $InstallRoot 'cache') | Out-Null
     Write-Utf8 $ownership 'Quartus QOL managed installation'
     $manifest = Get-Content -Raw (Join-Path $source 'dependencies.json') | ConvertFrom-Json
@@ -52,7 +52,7 @@ try {
     $stage = Join-Path $InstallRoot 'app-next'
     Remove-OwnedDirectory $stage $InstallRoot
     Copy-Item -LiteralPath (Join-Path $source 'app') -Destination $stage -Recurse
-    foreach ($relative in @('qolnative-v13.dll','qolpump.dll','qolworker-v3.exe')) {
+    foreach ($relative in @('qolnative-v13.dll','qolpump.dll','qolworker-v3.exe','qol-version-warning.exe')) {
         $expected = (Get-FileHash (Join-Path $source "app/$relative") -Algorithm SHA256).Hash
         if ((Get-FileHash (Join-Path $stage $relative) -Algorithm SHA256).Hash -ne $expected) { throw "Copy failed: $relative" }
     }
@@ -68,6 +68,8 @@ try {
     Copy-Item -LiteralPath (Join-Path $source 'config.example.tcl') -Destination (Join-Path $InstallRoot 'user/config.example.tcl') -Force
     Copy-Item -LiteralPath (Join-Path $source 'VERSION') -Destination $InstallRoot -Force
     if (!$PrepareOnly) {
+        $consent = Join-Path $InstallRoot 'user/compatibility.dict'
+        Write-Utf8 $consent "editor $($fingerprint.Editor) options $($fingerprint.Options)"
         Invoke-StartupHook (Join-Path $InstallRoot 'scripts/StartupHook.ps1') $QuartusRoot $InstallRoot Install
         Write-Utf8 (Join-Path $InstallRoot 'installation.json') (@{version=$version;quartusRoot=$QuartusRoot;installRoot=$InstallRoot} | ConvertTo-Json)
     }

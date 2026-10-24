@@ -5,3 +5,4 @@ tools/
 .runtime/
 __pycache__/
 *.tmp
+*.res

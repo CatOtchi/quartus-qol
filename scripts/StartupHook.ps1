@@ -2,7 +2,7 @@ param([Parameter(Mandatory)][string]$QuartusRoot,
       [Parameter(Mandatory)][string]$InstallRoot,
       [ValidateSet('Install','Uninstall')][string]$Action = 'Install')
 . "$PSScriptRoot/Common.ps1"
-Assert-CompatibleQuartus $QuartusRoot
+if ($Action -eq 'Install') { Assert-CompatibleQuartus $QuartusRoot (Join-Path $InstallRoot 'user/compatibility.dict') }
 $target = Join-Path $QuartusRoot 'common/tcl/internal/qui_init.tcl'
 $original = [IO.File]::ReadAllText($target)
 $pattern = '(?ms)^# BEGIN QUARTUS_QOL_NATIVE\r?\n.*?^# END QUARTUS_QOL_NATIVE[^\S\r\n]*(?:\r?\n|$)'

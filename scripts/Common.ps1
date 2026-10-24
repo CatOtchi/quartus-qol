@@ -34,19 +34,48 @@ function Get-QuartusRoot([string]$Requested) {
         (Test-Path $dll) -and (Get-FileHash $dll -Algorithm SHA256).Hash -eq $script:EditorHash
     })
     if ($supported.Count -eq 1) { return $supported[0] }
+    $available = @($candidates | Select-Object -Unique | Where-Object { Test-Path (Join-Path $_ 'bin64/edt_tedq.dll') })
+    if ($supported.Count -eq 0 -and $available.Count -eq 1) { return $available[0] }
     if ($supported.Count -gt 1) {
         Write-Host 'Multiple compatible installations found:'
         $supported | ForEach-Object { Write-Host "  $_" }
     }
     return Get-QuartusRoot (Read-Host 'Paste your Quartus folder (for example C:\altera_lite\24.1std\quartus)')
 }
-function Assert-CompatibleQuartus([string]$Root) {
-    foreach ($entry in @(@('edt_tedq.dll',$script:EditorHash), @('gcl_afcq.dll',$script:OptionsHash))) {
-        $path = Join-Path $Root ('bin64/' + $entry[0])
-        if (!(Test-Path $path) -or (Get-FileHash $path -Algorithm SHA256).Hash -ne $entry[1]) {
-            throw 'Unsupported Quartus binaries. Only Windows x64 Lite 24.1std build 1077 is supported. Nothing was patched.'
-        }
+function Get-QuartusFingerprint([string]$Root) {
+    $editor = Join-Path $Root 'bin64/edt_tedq.dll'
+    $options = Join-Path $Root 'bin64/gcl_afcq.dll'
+    if (!(Test-Path $editor) -or !(Test-Path $options)) { throw 'This installation is missing the Quartus editor or Options DLL.' }
+    return [pscustomobject]@{Editor=(Get-FileHash $editor -Algorithm SHA256).Hash.ToLowerInvariant(); Options=(Get-FileHash $options -Algorithm SHA256).Hash.ToLowerInvariant(); Version=[Diagnostics.FileVersionInfo]::GetVersionInfo($editor).FileVersion}
+}
+function Test-KnownFingerprint($Fingerprint) {
+    return $Fingerprint.Editor -eq $script:EditorHash -and $Fingerprint.Options -eq $script:OptionsHash
+}
+function Show-VersionWarning([string]$Version, [string]$Root) {
+    $helper = Join-Path $PSScriptRoot '../app/qol-version-warning.exe'
+    if (!(Test-Path $helper)) { throw 'Missing version-warning helper. Extract the full release ZIP and try again.' }
+    $arguments = '"{0}" "{1}"' -f $Version.Replace('"',''),$Root.Replace('"','')
+    $process = Start-Process -FilePath $helper -ArgumentList $arguments -Wait -PassThru
+    $decision = $process.ExitCode
+    if ($decision -eq 0) { return $true }
+    if ($decision -eq 2) { return $false }
+    throw 'The version warning could not be shown. Installation was stopped.'
+}
+function Confirm-QuartusCompatibility([string]$Root) {
+    $fingerprint = Get-QuartusFingerprint $Root
+    if (!(Test-KnownFingerprint $fingerprint) -and !(Show-VersionWarning $fingerprint.Version $Root)) {
+        throw 'Installation cancelled. No installation files or Quartus startup hook were changed.'
     }
+    return $fingerprint
+}
+function Assert-CompatibleQuartus([string]$Root, [string]$ConsentPath = '') {
+    $fingerprint = Get-QuartusFingerprint $Root
+    if (Test-KnownFingerprint $fingerprint) { return }
+    if ($ConsentPath -and (Test-Path $ConsentPath)) {
+        $expected = "editor $($fingerprint.Editor) options $($fingerprint.Options)"
+        if (([IO.File]::ReadAllText($ConsentPath)).Trim() -eq $expected) { return }
+    }
+    throw 'This Quartus build is untested. Run Install.cmd and accept its version warning to try these binaries.'
 }
 function Remove-OwnedDirectory([string]$Path, [string]$Parent) {
     $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
