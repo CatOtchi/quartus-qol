@@ -154,7 +154,7 @@ static int command(void*d,Tcl_Interp*i,int ac,Tcl_Obj*const*av){
  const char*op=Tcl_GetStringFromObj(av[1],NULL);
  if(!strcmp(op,"options"))return options_command(i,ac,av);
  QtList l=frames();prune_themes(&l);for(intptr_t j=0;j<l.size;j++)if(engine(l.ptr[j]))repair_theme(l.ptr[j]);
- if(!strcmp(op,"version")){free_list(&l);Tcl_SetObjResult(i,Tcl_NewWideIntObj(13));return 0;}
+ if(!strcmp(op,"version")){free_list(&l);Tcl_SetObjResult(i,Tcl_NewWideIntObj(14));return 0;}
  if(!strcmp(op,"widgets")){QtList ws={0};all_widgets(&ws);Tcl_Obj*r=Tcl_NewListObj(0,NULL);for(intptr_t k=0;k<ws.size;k++){void*w=ws.ptr[k];Tcl_Obj*row=Tcl_NewListObj(0,NULL);append(i,row,Tcl_NewStringObj(widget_class(w),-1));QtString n={0};object_name(w,&n);append(i,row,Tcl_NewUnicodeObj(n.ptr,(int)n.size));destroy_string(&n);append(i,r,row);}free_list(&ws);free_list(&l);Tcl_SetObjResult(i,r);return 0;}
  if(!strcmp(op,"widgetstyle")&&ac==4){const char*cls=Tcl_GetStringFromObj(av[2],NULL);QtString css={0};string_from_utf8(&css,Tcl_GetStringFromObj(av[3],NULL));QtList ws={0};all_widgets(&ws);int count=0;for(intptr_t k=0;k<ws.size;k++)if(!strcmp(widget_class(ws.ptr[k]),cls)){QtString old={0};get_stylesheet(ws.ptr[k],&old);int same=old.size==css.size&&!memcmp(old.ptr,css.ptr,(size_t)css.size*2);destroy_string(&old);if(!same)set_stylesheet(ws.ptr[k],&css);count++;}free_list(&ws);destroy_string(&css);free_list(&l);Tcl_SetObjResult(i,Tcl_NewWideIntObj(count));return 0;}
  if(!strcmp(op,"hover")){poll_hover(&l);free_list(&l);return 0;}

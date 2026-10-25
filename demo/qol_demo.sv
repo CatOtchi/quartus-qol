@@ -9,5 +9,7 @@ module qol_demo (
 
     assign serial_data     = SW[7:0];
     assign key_code_synced = SW[8];
-    assign LEDR = {key_code_synced, missing_signal, serial_data};
+    assign LEDR            = {key_code_synced, missing_signal, serial_data};
+
+
 endmodule

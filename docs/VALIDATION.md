@@ -1,5 +1,13 @@
 # Validation of 0.1.0
 
+## 0.2.0 theme checks
+
+- Seven palette definitions pass role/depth coverage and valid-color checks. Rendering tests verify paper, syntax roles and optional Pin Planner styling for each preset, without changing source text or font settings.
+- Preference tests cover valid theme selection, persistence, invalid values and migration of pre-theme settings to Quartus Dark. New users default to Quartus light with Pin Planner styling off.
+- In a separate Quartus preview, confirmed native bridge 14 and a fresh light editor. The dropdown appears on the existing Text Editor → Colors page and shows all seven presets. Fixed a startup race that could add a fallback Text Editor category before Quartus's native category finished constructing.
+- Selected Nord in the actual dropdown, clicked OK, and confirmed the saved `theme nord` preference, expected editor background and unchanged source buffer.
+- Computer control was interrupted before the remaining live light-preset/Cancel checks. Those paths have automated coverage; further live validation remains pending. No other Quartus build or clean Windows VM was tested.
+
 Checked on Windows with Quartus Prime Lite 24.1std build 1077. This is a small community release, not a certification across Windows machines or Quartus versions.
 
 ## Package and installer

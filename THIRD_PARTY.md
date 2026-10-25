@@ -20,3 +20,5 @@ The installer downloads original upstream archives, not modified repackagings:
 Download URLs and SHA-256 values are recorded in `dependencies.json`. Python and Node are private runtimes; the installer does not change system PATH or install pip/npm packages globally.
 
 Native helpers are built with GCC/MinGW-w64 and static libgcc. GCC runtime parts are covered by the [GCC Runtime Library Exception](https://www.gnu.org/licenses/gcc-exception-3.1.html); the compiler itself is not distributed. Windows system libraries remain supplied by Windows.
+
+Editor presets adapt the [Catppuccin palette](https://github.com/catppuccin/palette) (MIT), [Nord](https://github.com/nordtheme/nord) (MIT) and [Tokyo Night](https://github.com/folke/tokyonight.nvim) (Apache-2.0). Their licence texts are included in `app/vendor/palettes`. Syntax-role mappings and a few contrast adjustments are specific to this extension; these are palette adaptations rather than the original editors' complete themes. Quartus and Quartus Dark are this project's palettes.

@@ -2,7 +2,13 @@
  * Only our own AFCQ_TREE_PAGE instances get a cloned virtual table. Existing
  * Quartus instances, executable pages, binaries and shared tables are untouched.
  */
-enum {OPT_COMPLETION,OPT_FORMAT,OPT_DIAGNOSTICS,OPT_HOVER,OPT_COLORS,OPT_PINS,OPT_COUNT};
+enum {OPT_COMPLETION,OPT_FORMAT,OPT_DIAGNOSTICS,OPT_HOVER,OPT_COLORS,OPT_PINS,OPT_THEME,OPT_COUNT};
+enum {THEME_COUNT=7};
+static void (*qt_combo_ctor)(void*,void*);
+static void (*qt_combo_add)(void*,const QtString*,const void*);
+static int (*qt_combo_index)(void*);
+static void (*qt_combo_set)(void*,int);
+static void (*qt_label_ctor)(void*,const QtString*,void*,unsigned);
 static int (*qt_inherits)(void*,const char*);
 static QtString*(*qt_title)(void*,QtString*);
 static void (*qt_set_title)(void*,const QtString*);
@@ -30,21 +36,22 @@ static void*(*af_add_page)(void*,void*,void*,int);
 static void (*af_enable_apply)(void*);
 static void (*af_changed)(void*);
 static void* af_base_vtable;
-typedef struct OptionSession {void*sheet;void*checks[OPT_COUNT];void*pages[6];void**tables[6];int baseline[OPT_COUNT];struct OptionSession*next;} OptionSession;
+typedef struct OptionSession {void*sheet;void*checks[OPT_COUNT];void*theme_combo;void*pages[6];void**tables[6];int baseline[OPT_COUNT];DWORD created_at;struct OptionSession*next;} OptionSession;
 static OptionSession*option_sessions;
 static int option_pending,option_values[OPT_COUNT],options_ready;
-static int options_current[OPT_COUNT]={1,1,1,1,1,1},options_busy;
+static int options_current[OPT_COUNT]={1,1,1,1,1,0,0},options_busy;
 static UINT_PTR options_timer;
-static const char*option_keys[]={"completion","format_on_save","diagnostics","hover","editor_colors","pin_planner_colors"};
+static const char*option_keys[]={"completion","format_on_save","diagnostics","hover","editor_colors","pin_planner_colors","theme"};
 static int qt_string_equals(QtString*s,const char*ascii){size_t n=strlen(ascii);if((size_t)s->size!=n)return 0;for(size_t k=0;k<n;k++)if(s->ptr[k]!=(unsigned char)ascii[k])return 0;return 1;}
 static int qt_list_contains(QtList*l,void*w){for(intptr_t k=0;k<l->size;k++)if(l->ptr[k]==w)return 1;return 0;}
 static void name_widget(void*w,const char*name){QtString s={0};string_from_utf8(&s,name);qt_name(w,&s);destroy_string(&s);}
-static int options_changed(OptionSession*s){for(int k=0;k<OPT_COUNT;k++)if(s->checks[k]&&!!qt_checked(s->checks[k])!=s->baseline[k])return 1;return 0;}
+static int option_value(OptionSession*s,int k){if(k==OPT_THEME)return s->theme_combo?qt_combo_index(s->theme_combo):s->baseline[k];return s->checks[k]?!!qt_checked(s->checks[k]):s->baseline[k];}
+static int options_changed(OptionSession*s){for(int k=0;k<OPT_COUNT;k++)if(option_value(s,k)!=s->baseline[k])return 1;return 0;}
 static OptionSession*session_for_page(void*p){for(OptionSession*s=option_sessions;s;s=s->next)for(int k=0;k<6;k++)if(s->pages[k]==p)return s;return NULL;}
 static int option_page_changed(void*p){OptionSession*s=session_for_page(p);return s?options_changed(s):0;}
-static void option_commit(void*p){OptionSession*s=session_for_page(p);if(!s||!options_changed(s))return;for(int k=0;k<OPT_COUNT;k++){option_values[k]=s->checks[k]?!!qt_checked(s->checks[k]):s->baseline[k];s->baseline[k]=option_values[k];options_current[k]=option_values[k];}option_pending=1;}
+static void option_commit(void*p){OptionSession*s=session_for_page(p);if(!s||!options_changed(s))return;for(int k=0;k<OPT_COUNT;k++){option_values[k]=option_value(s,k);s->baseline[k]=option_values[k];options_current[k]=option_values[k];}option_pending=1;}
 static int option_accept(void*p){option_commit(p);return 1;}
-static void option_reject(void*p){OptionSession*s=session_for_page(p);if(s)for(int k=0;k<OPT_COUNT;k++)if(s->checks[k])qt_set_checked(s->checks[k],s->baseline[k]);}
+static void option_reject(void*p){OptionSession*s=session_for_page(p);if(s){for(int k=0;k<OPT_THEME;k++)if(s->checks[k])qt_set_checked(s->checks[k],s->baseline[k]);if(s->theme_combo)qt_combo_set(s->theme_combo,s->baseline[OPT_THEME]);}}
 static void*new_group(void*parent,const char*title){
  void*group=calloc(1,4096);void*layout=calloc(1,4096);if(!group||!layout){free(group);free(layout);return NULL;}
  QtString t={0};string_from_utf8(&t,title);qt_group_ctor(group,&t,parent);destroy_string(&t);qt_vbox_ctor(layout,group);
@@ -57,6 +64,18 @@ static int new_check(OptionSession*s,int k,void*group,const char*label){
  QtString t={0};string_from_utf8(&t,label);qt_check_ctor(c,&t,group);destroy_string(&t);
  char name[128];snprintf(name,sizeof(name),"quartus_qol_%s",option_keys[k]);name_widget(c,name);
  qt_set_checked(c,s->baseline[k]);qt_layout_add(qt_layout(group),c);qt_show(c);s->checks[k]=c;return 1;
+}
+static int new_theme_combo(OptionSession*s,void*group){
+ if(!group)return 0;
+ void*label=calloc(1,4096);void*combo=calloc(1,4096);if(!label||!combo){free(label);free(combo);return 0;}
+ QtString text={0};string_from_utf8(&text,"Editor color theme:");qt_label_ctor(label,&text,group,0);destroy_string(&text);
+ qt_layout_add(qt_layout(group),label);qt_show(label);
+ qt_combo_ctor(combo,group);name_widget(combo,"quartus_qol_theme");
+ const char*names[]={"Quartus (light, default)","Quartus Dark (original QOL)","Catppuccin Frappe","Nord","Tokyo Night","Catppuccin Latte (light)","Tokyo Night Day (light)"};
+ /* An all-zero QVariant is the Qt 6 invalid/default value. */
+ uint64_t empty_variant[4]={0};
+ for(int k=0;k<THEME_COUNT;k++){string_from_utf8(&text,names[k]);qt_combo_add(combo,&text,empty_variant);destroy_string(&text);}
+ qt_combo_set(combo,s->baseline[OPT_THEME]);qt_layout_add(qt_layout(group),combo);qt_show(combo);s->theme_combo=combo;return 1;
 }
 static void*new_option_page(OptionSession*s,int index,int id,const char*title,void*parent_page){
  /* AFCQ_TREE_PAGE is 0x40 bytes in the pinned build. Reserve extra constructor
@@ -113,12 +132,13 @@ static int attach_options(OptionSession*s,QtList*ws){
  if(colors&&qt_layout(colors)){
   void*cg=new_group(colors,"Syntax highlighting");
   new_check(s,OPT_COLORS,cg,"Use enhanced syntax colors and matching block colors");
+  new_theme_combo(s,cg);
   if(!colors_page)qt_box_stretch(qt_layout(colors),1);
  }
  void*pins=pin_page?af_page_ui(pin_page):new_option_page(s,4,0x514f4c04,"Pin Planner",NULL);
  if(pins&&qt_layout(pins)){
   void*pg=new_group(pins,"Assignment table appearance");
-  new_check(s,OPT_PINS,pg,"Use readable dark Pin Planner assignment rows");
+  new_check(s,OPT_PINS,pg,"Use the editor theme for Pin Planner assignment rows");
   if(!pin_page)qt_box_stretch(qt_layout(pins),1);
  }
  return 1;
@@ -133,9 +153,13 @@ static int options_native_scan(QtList*ws){
   void*w=ws->ptr[k];if(!qt_inherits(w,"AFCQ_TREE_SHEET"))continue;
   QtString t={0};qt_title(w,&t);int is_options=qt_string_equals(&t,"Options");destroy_string(&t);if(!is_options)continue;
   OptionSession*s=option_sessions;while(s&&s->sheet!=w)s=s->next;
-  if(!s){s=calloc(1,sizeof(*s));if(!s)continue;s->sheet=w;memcpy(s->baseline,options_current,sizeof(options_current));s->next=option_sessions;option_sessions=s;}
+  if(!s){s=calloc(1,sizeof(*s));if(!s)continue;s->sheet=w;s->created_at=GetTickCount();memcpy(s->baseline,options_current,sizeof(options_current));s->next=option_sessions;option_sessions=s;}
+  /* Quartus constructs context-dependent editor pages after the dialog shell.
+     Wait for that initialization before deciding a fallback page is needed. */
+  if((DWORD)(GetTickCount()-s->created_at)<900)continue;
   attached|=attach_options(s,ws);
   if(s->checks[OPT_HOVER]&&s->checks[OPT_DIAGNOSTICS])qt_enabled(s->checks[OPT_HOVER],qt_checked(s->checks[OPT_DIAGNOSTICS]));
+  if(s->theme_combo&&s->checks[OPT_COLORS])qt_enabled(s->theme_combo,qt_checked(s->checks[OPT_COLORS]));
   if(options_changed(s)){af_enable_apply(w);for(int j=0;j<6;j++)if(s->pages[j])af_changed(s->pages[j]);}
  }
  return attached;
@@ -161,8 +185,8 @@ static int options_command(Tcl_Interp*i,int ac,Tcl_Obj*const*av){
    }
   }
  }else if(!strcmp(op,"poll")&&ac==4){
-  int count;Tcl_Obj**values;if(Tcl_ListObjGetElements(i,av[3],&count,&values)||count!=OPT_COUNT){free_list(&ws);return fail(i,"Expected six feature values");}
-  int current[OPT_COUNT];for(int k=0;k<OPT_COUNT;k++){int64_t v;if(Tcl_GetWideIntFromObj(i,values[k],&v)){free_list(&ws);return 1;}current[k]=!!v;}
+  int count;Tcl_Obj**values;if(Tcl_ListObjGetElements(i,av[3],&count,&values)||count!=OPT_COUNT){free_list(&ws);return fail(i,"Expected six feature values and a theme index");}
+  int current[OPT_COUNT];for(int k=0;k<OPT_COUNT;k++){int64_t v;if(Tcl_GetWideIntFromObj(i,values[k],&v)){free_list(&ws);return 1;}if(k==OPT_THEME&&(v<0||v>=THEME_COUNT)){free_list(&ws);return fail(i,"Invalid theme index");}current[k]=k==OPT_THEME?(int)v:!!v;}
   if(!option_pending)memcpy(options_current,current,sizeof(current));
   if(!options_timer)options_timer=SetTimer(NULL,0,300,options_tick);
   pair(i,r,"attached",Tcl_NewWideIntObj(options_native_scan(&ws)));
@@ -181,6 +205,11 @@ static void init_options(void){
  OPT_BIND(w,qt_vbox_ctor,"??0QVBoxLayout@@QEAA@PEAVQWidget@@@Z");
  OPT_BIND(w,qt_group_ctor,"??0QGroupBox@@QEAA@AEBVQString@@PEAVQWidget@@@Z");
  OPT_BIND(w,qt_check_ctor,"??0QCheckBox@@QEAA@AEBVQString@@PEAVQWidget@@@Z");
+ OPT_BIND(w,qt_combo_ctor,"??0QComboBox@@QEAA@PEAVQWidget@@@Z");
+ OPT_BIND(w,qt_combo_add,"?addItem@QComboBox@@QEAAXAEBVQString@@AEBVQVariant@@@Z");
+ OPT_BIND(w,qt_combo_index,"?currentIndex@QComboBox@@QEBAHXZ");
+ OPT_BIND(w,qt_combo_set,"?setCurrentIndex@QComboBox@@QEAAXH@Z");
+ OPT_BIND(w,qt_label_ctor,"??0QLabel@@QEAA@AEBVQString@@PEAVQWidget@@V?$QFlags@W4WindowType@Qt@@@@@Z");
  OPT_BIND(w,qt_layout_add,"?addWidget@QLayout@@QEAAXPEAVQWidget@@@Z");
  OPT_BIND(w,qt_box_stretch,"?addStretch@QBoxLayout@@QEAAXH@Z");
  OPT_BIND(w,qt_set_checked,"?setChecked@QAbstractButton@@QEAAX_N@Z");

@@ -6,7 +6,7 @@ Build the three helpers on Windows x64 with MinGW-w64 GCC:
 
 ```powershell
 cd app
-gcc -std=c11 -O2 -shared -static-libgcc -Wall -Wextra -o qolnative-v13.dll qol_native.c
+gcc -std=c11 -O2 -shared -static-libgcc -Wall -Wextra -o qolnative-v14.dll qol_native.c
 gcc -std=c11 -O2 -shared -static-libgcc -Wall -Wextra -o qolpump.dll qol_pump.c
 gcc -std=c11 -O2 -static-libgcc -municode -Wall -Wextra -o qolworker-v3.exe qol_worker.c
 windres version-warning.rc -O coff -o version-warning.res

@@ -17,7 +17,7 @@ try {
     Assert (($compatibilityResult -join "`n") -match '^PASS:') "Runtime consent: $compatibilityResult"
     Write-Host ($compatibilityResult -join "`n")
     $app = Join-Path $PreparedRoot app
-    foreach ($test in @('test-completion.tcl','test-settings.tcl')) {
+    foreach ($test in @('test-completion.tcl','test-settings.tcl','test-palettes.tcl')) {
         $result = & $tcl (Join-Path $app $test) 2>&1
         Assert (($result -join "`n") -match '^PASS:') "Tcl test $test : $result"
         Write-Host ($result -join "`n")

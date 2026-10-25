@@ -1,85 +1,84 @@
 # Quartus QOL
 
-Slang diagnostics, Verible formatting, fuzzy completion and improved colors **inside Quartus's own editor**. No external editor or VS Code installation needed.
+I wanted formatting, error checking and decent autocomplete without having to leave Quartus, so this adds those to the editor that's already there.
 
-**Tested: Windows x64, Quartus Prime Lite 24.1std build 1077.** On other builds, the installer shows a warning with **Cancel** and **I understand and continue**. Continuing attempts an experimental installation; compatibility is not guaranteed. Linux is not supported yet.
+You only need **Quartus and an internet connection for the installer**. It downloads Slang, Verible, Python and Node for you. You don't need VS Code or any of those tools installed beforehand, and it works offline once it's set up.
 
-![Slang diagnostic hover and syntax colors in Quartus's native editor](docs/demo-diagnostics.png)
+Tested on **Windows x64 with Quartus Prime Lite 24.1std build 1077**. If you have a different build, you'll get a warning and can either cancel or click **I understand and continue**. You're welcome to try it, but I can't guarantee it'll work. Linux isn't supported yet.
 
-![Typing se suggests serial_data in Quartus's native completion popup](docs/demo-completion.png)
+![Slang diagnostic hover in Quartus](docs/demo-diagnostics.png)
 
-These are actual Quartus screenshots using the included demo. The surrounding Quartus theme and font follow your existing settings.
+![Native completion suggestions in Quartus](docs/demo-completion.png)
 
-## Download and install
+The screenshots use the **Quartus Dark** editor preset. A fresh install starts with **Quartus (light)**, which looks like the usual Quartus editor, with extra colors for things like ports and nested blocks.
 
-1. Download the **QuartusQOL-…-windows-x64.zip** from [Releases](https://github.com/CatOtchi/quartus-qol/releases/latest) and extract it. A source ZIP or Git clone also works.
-2. Close Quartus, then double-click **Install.cmd**. Internet access is needed on the first install.
-3. The installer finds Quartus or asks for its folder. If its binaries differ from the tested build, choose **Cancel** to stop without changes or **I understand and continue** to try it experimentally. It downloads and verifies private copies of Slang, Verible, Python and Node—nothing needs to be on your PATH.
-4. Approve the administrator prompt **if** Windows protects the Quartus installation folder.
-5. Open Quartus normally and open a `.sv` or `.v` file. Save to format and check it.
+## Install
 
-Windows may show a warning because this small community project is unsigned. Downloads come from the upstream projects over HTTPS and their archive SHA-256 values are pinned in `dependencies.json`.
+1. Download the Windows ZIP from [the latest release](https://github.com/CatOtchi/quartus-qol/releases/latest) and extract it.
+2. Close Quartus and run **Install.cmd**.
+3. It finds Quartus, or asks you where it's installed, then downloads the tools it needs. Approve the admin prompt if it needs permission to add the startup hook.
+4. Open Quartus normally. Open a `.sv` or `.v` file and save it.
 
-Files are installed under `%LOCALAPPDATA%\QuartusQOL`. You can delete the downloaded ZIP/folder after installation. After setup, the editor features run locally without network access or automatic updates.
+It installs into `%LOCALAPPDATA%\QuartusQOL`, so you can delete the folder you downloaded afterwards. Downloads come from the tools' own release pages and are checked against pinned SHA-256 hashes. Nothing gets added to your system PATH.
 
-On an untested build, the installer asks before changing anything:
+## What it adds
 
-![Untested version warning with Cancel and I understand and continue](docs/version-warning.png)
+- **Error checking after save:** Slang draws red errors, orange warnings and blue notes. Hover over a marked line to see the messages. Multiple messages stack in the same tooltip.
+- **Format on save:** Verible handles indentation and alignment. The defaults are four spaces, 120 columns, and aligned ports, declarations and assignments.
+- **Autocomplete:** Names from the current file and common HDL keywords. Matching ignores case and works with parts of names or letters in order, so `data` finds `serial_data`, `ksc` finds `key_code_synced`, and `ledr` finds `LEDR`. Arrows select, Tab/Enter accepts and Escape closes it.
+- **Coloring:** Different colors for syntax roles, plus matching colors for nested brackets and blocks. You can pick a preset or turn the enhanced coloring off.
+- **Optional Pin Planner colors:** Use the editor's palette for the assignment rows. This is off by default.
 
-## What you get
+Try [the demo file](demo/qol_demo.sv) if you want to see it working. `missing_signal` is deliberately wrong so there's an error to hover over.
 
-- Red error, orange warning and blue information squiggles from Slang after save, with stacked diagnostic tooltips.
-- Verible format on save: four-space indentation, 120-column limit, aligned declarations, ports, parameters and assignments.
-- Fuzzy completion for names in the current file and common HDL keywords: `data` finds `serial_data`, `ksc` finds `key_code_synced`, and `ledr` finds `LEDR`. Matching is case-insensitive for all candidates; original spelling is preserved. Arrows select, Tab/Enter accepts, Escape dismisses.
-- Syntax roles and matching block/bracket depth colors in a subdued Quartus palette.
-- Readable dark Pin Planner assignment rows.
-- Settings in the actual **Tools → Options** dialog:
+## Colors and settings
 
-| Page | Added setting |
+Go to **Tools → Options → Text Editor → Colors** to pick an editor theme:
+
+- **Quartus (light)** — The default. White background and familiar Quartus colors, extended for the extra syntax roles.
+- **Quartus Dark** — The grey palette used in my screenshots and the original QOL setup.
+- **Catppuccin Frappé**
+- **Nord**
+- **Tokyo Night**
+- **Catppuccin Latte** — Light.
+- **Tokyo Night Day** — Light.
+
+**The dark menus, toolbars and other UI around the editor in my screenshots aren't supplied by this plugin.** That comes from my existing Quartus/Qt setup. These presets change the editor, and optionally the Pin Planner assignment table. They don't replace Quartus's whole UI theme or change your font.
+
+The other switches are in Options too:
+
+| Where | What |
 | --- | --- |
 | Text Editor → Autocomplete Text | QOL completion |
 | Text Editor → Formatting | Format on save |
-| Text Editor → Diagnostics | Slang checking and hover |
-| Text Editor → Colors | Syntax and nesting colors |
-| Pin Planner | Dark assignment table |
+| Text Editor → Diagnostics | Checking and hover |
+| Text Editor → Colors | Enhanced colors and the theme preset |
+| Pin Planner | Use the editor theme for assignment rows |
 
-**OK** saves preferences; **Cancel** discards changes. Quartus's own autocomplete controls are separate. Completion is lexical, not type-aware member/port completion. Diagnostics check saved files; editing clears stale marks. Formatting stays undoable and results are discarded if newer edits would be overwritten.
+Click **OK** to save or **Cancel** to leave things as they were. Turning enhanced colors off gives control back to Quartus's own color settings. Quartus's original autocomplete switches are separate from the QOL switch.
 
-Try [demo/qol_demo.sv](demo/qol_demo.sv). It intentionally contains an undeclared signal. See [the demo instructions](demo/README.md).
+If you're upgrading from a release before the theme picker, it keeps the original dark palette. New installs get the light Quartus-style default.
 
-## Upgrade
+## Updating or removing it
 
-Close Quartus. Download and extract a newer release, or `git pull` your clone, then run **Install.cmd** again. Open Quartus normally. The same installer updates the files and fetches changed dependencies while keeping `user/preferences.dict` and `user/config.tcl`.
+To update, close Quartus, download a newer ZIP and run its **Install.cmd** again. If you cloned the repo, `git pull` and rerun the installer. Your settings and selected theme are kept.
 
-No Git knowledge is needed. Keep a previous release ZIP if you want to reinstall an older version. All Quartus windows must be closed so Windows can release the loaded bridge DLLs.
+To uninstall, close Quartus and run **Uninstall.cmd**. It removes its startup hook but keeps your settings and downloaded tools. You can delete `%LOCALAPPDATA%\QuartusQOL` afterwards if you want those gone too.
 
-## Uninstall
+## If something doesn't work
 
-Close Quartus and run **Uninstall.cmd**, either from a download or `%LOCALAPPDATA%\QuartusQOL`. It removes only this installation's marked startup hook and keeps your settings and tools. Delete the installed folder afterward if you no longer want them.
+Other Quartus builds may have different internals. Accepting the version warning lets the installer try, but the bridge still checks the interfaces it uses and can refuse to load. It can also crash on an untested build. If Quartus changes, rerun the installer to acknowledge that build.
 
-## Advanced configuration
+![Version warning](docs/version-warning.png)
 
-Copy the installed `user/config.example.tcl` to `user/config.tcl` to override include directories, defines, compiler flags or formatting options. Restart Quartus after editing it. Preferences from Tools → Options take precedence over feature defaults.
+If nothing starts, check `app/.runtime/startup-error.txt` inside the installed folder. If a download fails, rerun the installer; it keeps verified downloads so you don't need to start over.
 
-Custom location or Quartus path:
+Checking is for saved Verilog/SystemVerilog files, not VHDL. Slang and Quartus synthesis won't always report the same issues. Completion uses words from the file rather than compiler-resolved members or ports. Very large files skip completion or enhanced coloring.
 
-```powershell
-.\scripts\Install.ps1 -QuartusRoot 'D:\altera_lite\24.1std\quartus' -InstallRoot 'D:\QuartusQOL'
-.\scripts\Uninstall.ps1 -InstallRoot 'D:\QuartusQOL'
-```
+Project source files, includes, macros and the top module are picked up automatically where possible. For generated IP or unusual projects, copy `user/config.example.tcl` to `user/config.tcl` in the installed folder and add your paths or overrides there. Restart Quartus after changing it.
 
-Use a local installation path without braces. Install for your own Windows account; the app and tools are per-user. Installing into one shared Quartus installation changes its startup file, so coordinate with other users of that installation.
+This uses undocumented Quartus internals and isn't an official Altera plugin. The installer adds a marked block to `quartus/common/tcl/internal/qui_init.tcl`; it doesn't modify Quartus's DLLs. See [validation](docs/VALIDATION.md) for what's actually been tested, including the limits of the clean-machine testing.
 
-## Troubleshooting and limits
+## Source
 
-- **Untested build:** accepting the installer warning records consent for that exact editor/Options DLL pair. Native signature and function checks still apply, so the extension may fail to start on incompatible interfaces. It may also crash; there is no guarantee of compatibility. After Quartus changes, rerun the installer to acknowledge the new build. Cancel, Escape and closing the dialog all cancel; Enter defaults to Cancel.
-- **No startup features:** check `app/.runtime/startup-error.txt` under the installed folder. Installation only edits a short marked block in `quartus/common/tcl/internal/qui_init.tcl`; Quartus DLLs are never modified.
-- **Download failure:** rerun the installer. Verified archives are cached; a checksum mismatch stops installation.
-- **Project-specific errors:** sources, top entity, include paths and macros are read from the project. Files only referenced through QIP/generated IP may need explicit configuration.
-- HDL source should be UTF-8/ASCII. Verilog/SystemVerilog are supported; VHDL is not. Slang and Quartus synthesis can report different issues.
-- Completion skips files above 1 MiB; enhanced colors skip files above 4 MiB. Formatting preserves line endings and approximates caret/scroll position.
-- This uses undocumented native Qt/Scintilla interfaces and is a small experimental project, not an official Altera extension. See [validation](docs/VALIDATION.md) for what has actually been checked.
-
-## Source and licensing
-
-MIT for this project's code; third-party components retain their own licences. See [THIRD_PARTY.md](THIRD_PARTY.md). Quartus itself is not included. Build instructions are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+[Build/development notes](docs/DEVELOPMENT.md), [third-party notices](THIRD_PARTY.md), [MIT licence](LICENSE). Quartus itself isn't included.

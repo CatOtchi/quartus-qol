@@ -18,7 +18,7 @@ namespace eval ::quartus_qol {
   slang [file join $home .. tools slang-11.0 slang.exe] \
   verible [file join $home .. tools verible-4294 verible-verilog-format.exe] \
   format_args {--indentation_spaces=4 --column_limit=120 --port_declarations_alignment=align --port_declarations_indentation=indent --module_net_variable_alignment=align --assignment_statement_alignment=align --named_port_alignment=align --named_port_indentation=indent --named_parameter_alignment=align --named_parameter_indentation=indent --formal_parameters_alignment=align --formal_parameters_indentation=indent --case_items_alignment=align} \
-  slang_args {-Wextra} include_dirs {} defines {} top {} sources {} hover_delay 400 completion 1 format_on_save 1 diagnostics 1 hover 1 editor_colors 1 pin_planner_colors 1 node [file join $home .. tools node-22.20.0 node.exe]]
+  slang_args {-Wextra} include_dirs {} defines {} top {} sources {} hover_delay 400 completion 1 format_on_save 1 diagnostics 1 hover 1 editor_colors 1 pin_planner_colors 0 theme quartus node [file join $home .. tools node-22.20.0 node.exe]]
 }
 proc ::quartus_qol::read_source {path} {
  set f [open $path r]; fconfigure $f -translation binary -encoding utf-8
@@ -237,10 +237,10 @@ proc ::quartus_qol::stop {} {
  foreach ed [qol_native list] {catch {qol_native clear [dict get $ed path]}}
  post_message {Quartus QOL disabled for this session.}
 }
-if {[llength [info commands qol_native]] == 0 || [catch {qol_native version} native_version] || $native_version != 13} {
+if {[llength [info commands qol_native]] == 0 || [catch {qol_native version} native_version] || $native_version != 14} {
  source [file join $::quartus_qol::home compatibility.tcl]
  ::quartus_qol::check_compatibility
- load [file join $::quartus_qol::home qolnative-v13.dll] Qolnative
+ load [file join $::quartus_qol::home qolnative-v14.dll] Qolnative
 }
 if {[file exists [file join $::quartus_qol::user_home config.tcl]]} {source [file join $::quartus_qol::user_home config.tcl]}
 source [file join $::quartus_qol::home settings.tcl]
