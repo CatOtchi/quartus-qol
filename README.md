@@ -4,9 +4,9 @@ Slang diagnostics, Verible formatting, fuzzy completion and improved colors **in
 
 **Tested: Windows x64, Quartus Prime Lite 24.1std build 1077.** On other builds, the installer shows a warning with **Cancel** and **I understand and continue**. Continuing attempts an experimental installation; compatibility is not guaranteed. Linux is not supported yet.
 
-![Slang squiggles and diagnostic hover in Quartus's native editor](docs/demo-diagnostics.png)
+![Slang diagnostic hover and syntax colors in Quartus's native editor](docs/demo-diagnostics.png)
 
-![Typing ksc suggests key_code_synced in Quartus's native completion popup](docs/demo-completion.png)
+![Typing se suggests serial_data in Quartus's native completion popup](docs/demo-completion.png)
 
 These are actual Quartus screenshots using the included demo. The surrounding Quartus theme and font follow your existing settings.
 
