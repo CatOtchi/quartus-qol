@@ -4,13 +4,13 @@ I wanted formatting, error checking and decent autocomplete in Quartus's own edi
 
 You need Quartus and an internet connection to install it. The installer downloads Slang, Verible, Python and Node for you. You don't need VS Code or any of those tools installed beforehand. Once installed, it works offline.
 
-I've tested it on Windows x64 with Quartus Prime Lite 24.1std build 1077. On a different build, the installer shows a warning. You can cancel or click **I understand and continue**, but I can't guarantee it'll work. Linux isn't supported yet.
+I've tested it on Windows x64 with Quartus Prime Lite 24.1std build 1077. On a different build, the installer shows a warning. You can cancel or click **I understand and continue**, but I can't guarantee it'll work. And I know one of you is going to ask, Linux isn't supported yet... (might work on it in the future tho).
 
 ![Slang diagnostic hover in Quartus](docs/demo-diagnostics.png)
 
 ![Native completion suggestions in Quartus](docs/demo-completion.png)
 
-The screenshots use the Quartus Dark editor preset. A fresh install starts with Quartus (light), which uses the usual Quartus colors plus extra colors for ports and nested blocks.
+The screenshots use the Quartus Dark editor preset. A fresh install starts defaults to the Quartus (light) theme as its what people are used to as it uses the usual Quartus colors plus extra colors for ports and nested blocks.
 
 ## Install
 
@@ -19,12 +19,12 @@ The screenshots use the Quartus Dark editor preset. A fresh install starts with 
 3. If the installer can't find Quartus, select its installation folder. It then downloads the tools it needs. Approve the admin prompt if Windows asks for permission to add the startup hook.
 4. Open Quartus, open a `.sv` or `.v` file and save it.
 
-The installer puts everything in `%LOCALAPPDATA%\QuartusQOL`, so you can delete the folder you downloaded afterwards. It downloads each tool from its own release page and checks the download against a pinned SHA-256 hash. It doesn't change your system PATH.
+The installer puts everything in `%LOCALAPPDATA%\QuartusQOL`, so you can delete the folder you downloaded afterwards. It downloads each tool from its own release page so no need to worry about having dependencies installed before hand :)
 
 ## What it adds
 
-- Slang checks your code after save. Errors get red squiggles, warnings get orange and notes get blue. Hover over a marked line to read the messages. If a line has several messages, they appear in one tooltip.
-- Verible formats on save. The defaults are four spaces, 120 columns, and aligned ports, declarations and assignments.
+- Slang checks your code after you save it rather than only after compile. Errors get red squiggles, warnings get orange and notes get blue. Hover over a marked line to read the messages (similar to every other IDE). If a line has several messages, they appear in one tooltip.
+- Verible formats on save. The defaults are four spaces, 120 columns, and aligned ports, declarations and assignments. You can change these by editing the verible config found at `%LOCALAPPDATA%\QuartusQOL\user\config.tcl`. If its not there create the file and edit it. 
 - Autocomplete suggests names from the current file and common HDL keywords. Matching ignores case and accepts parts of names or letters in order. For example, `data` finds `serial_data`, `ksc` finds `key_code_synced`, and `ledr` finds `LEDR`. Use the arrow keys to select a suggestion, Tab or Enter to accept it, and Escape to close the list.
 - Syntax colors distinguish ports, module names and other code roles. Nested brackets and blocks have matching colors. You can pick a preset or turn this off.
 - Pin Planner can use the editor's palette for its assignment rows. This is off by default.
@@ -43,7 +43,7 @@ Go to **Tools → Options → Text Editor → Colors** to pick an editor theme:
 - Catppuccin Latte is light.
 - Tokyo Night Day is light.
 
-The dark menus and toolbars in my screenshots come from my existing Quartus and Qt setup. This plugin changes the editor colors and, if enabled, the Pin Planner assignment table. It doesn't change the rest of Quartus or your font.
+The dark menus and toolbars in my screenshots come from my existing Quartus and Qt setup. This plugin changes the editor colors and, if enabled, the Pin Planner assignment table. It doesn't change the rest of Quartus or your font (I recommend you download a nerdfont though as it makes editing easier on the eyes)
 
 The other switches are in Options too:
 
