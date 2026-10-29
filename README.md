@@ -1,6 +1,8 @@
 # Quartus QOL
 
-Quartus's editor sucks, so I made this. It adds these to the editor already in Quartus:
+Quartus's editor is shit. I got tired of compiling just to catch a typo and lining everything up by hand, so I made this.
+
+It adds these to Quartus's own editor:
 
 - Error checking after save, with squiggles and hover messages.
 - Formatting on save.
