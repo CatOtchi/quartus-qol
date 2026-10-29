@@ -1,6 +1,13 @@
 # Quartus QOL
 
-I wanted formatting, error checking and decent autocomplete in Quartus's own editor, so I made this.
+Quartus's editor sucks, so I made this to add the stuff you'd expect from a code editor. It all runs inside Quartus's own editor:
+
+- Errors and warnings after you save, with squiggles and hover messages. No need to compile just to catch a typo.
+- Formatting on save, so you don't have to line everything up yourself.
+- Autocomplete for keywords and names in your file, even if you type part of a name or use the wrong case.
+- Better syntax colors and dark themes for the editor and the surrounding UI.
+
+[Download the latest release](https://github.com/CatOtchi/quartus-qol/releases/latest), close Quartus and run `Install.cmd`. You can change the settings in **Tools → Options**. More details below if you want them.
 
 You need Quartus and an internet connection to install it. The installer downloads Slang, Verible, Python and Node for you. You don't need VS Code or any of those tools installed beforehand. Once installed, it works offline.
 
