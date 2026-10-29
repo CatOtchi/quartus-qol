@@ -230,6 +230,7 @@ proc ::quartus_qol::stop {} {
  if {[llength [info commands ::quartus_qol::color_stop]]} {::quartus_qol::color_stop}
  if {[llength [info commands ::quartus_qol::completion_stop]]} {::quartus_qol::completion_stop}
  catch {qol_native options stop}
+ catch {qol_native uistyle {}}
  if {[info exists ::quartus_qol::settings_timer] && $::quartus_qol::settings_timer ne {}} {after cancel $::quartus_qol::settings_timer;set ::quartus_qol::settings_timer {}}
  set enabled 0
  if {$timer ne {}} {after cancel $timer; set timer {}}
@@ -237,10 +238,10 @@ proc ::quartus_qol::stop {} {
  foreach ed [qol_native list] {catch {qol_native clear [dict get $ed path]}}
  post_message {Quartus QOL disabled for this session.}
 }
-if {[llength [info commands qol_native]] == 0 || [catch {qol_native version} native_version] || $native_version != 14} {
+if {[llength [info commands qol_native]] == 0 || [catch {qol_native version} native_version] || $native_version != 15} {
  source [file join $::quartus_qol::home compatibility.tcl]
  ::quartus_qol::check_compatibility
- load [file join $::quartus_qol::home qolnative-v14.dll] Qolnative
+ load [file join $::quartus_qol::home qolnative-v15.dll] Qolnative
 }
 if {[file exists [file join $::quartus_qol::user_home config.tcl]]} {source [file join $::quartus_qol::user_home config.tcl]}
 source [file join $::quartus_qol::home settings.tcl]

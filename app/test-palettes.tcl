@@ -24,6 +24,12 @@ foreach name $::quartus_qol::theme_keys {
  foreach command $messages {check {[lindex $command 0] ni {2055 2056 2057 2171}} "$name preserves font and source"}
  set ::quartus_qol::theme_tick 3
  ::quartus_qol::theme_poll
+ set ui [lsearch -inline -index 0 $calls uistyle]
+ if {$name in {quartus_dark catppuccin_frappe nord tokyo_night}} {
+  check {[string first [dict get $p base] [lindex $ui 1]]>=0} "$name dark UI follows palette"
+ } elseif {$name eq {catppuccin_latte}} {
+  check {$ui eq {uistyle {}}} {light theme restores application stylesheet}
+ }
  check {[dict get $::quartus_qol::themed demo.sv] eq $name} "$name tracked per buffer"
  set css [lindex [lsearch -inline -index 0 $calls widgetstyle] 2]
  check {[string first [dict get $p base] $css]>=0 && [string first [dict get $p text] $css]>=0} "$name Pin Planner follows palette"
@@ -33,4 +39,12 @@ check {[dict get [::quartus_qol::current_palette] base] eq {#ffffff}} {fresh def
 dict set ::quartus_qol::config editor_colors 0
 set calls {};::quartus_qol::theme_poll
 check {[lsearch -index 0 $calls theme]<0} {disabled colors do not overwrite native palette}
+dict set ::quartus_qol::config theme nord
+dict set ::quartus_qol::config editor_colors 1
+set calls {};::quartus_qol::theme_poll
+set calls {};::quartus_qol::theme_poll
+check {[lsearch -index 0 $calls uistyle]<0} {unchanged theme doesn't repolish the application}
+dict set ::quartus_qol::config editor_colors 0
+set calls {};::quartus_qol::theme_poll
+check {{uistyle {}} in $calls} {disabled colors restore the application stylesheet}
 puts {PASS: seven complete palettes, role/depth colors, font/source preservation, stock default and Pin Planner colors}

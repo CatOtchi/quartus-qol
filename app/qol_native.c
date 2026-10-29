@@ -44,6 +44,10 @@ static const char *(*class_name)(const void*);
 static QtString *(*object_name)(void*,QtString*);
 static void (*set_stylesheet)(void*,const QtString*);
 static QtString *(*get_stylesheet)(void*,QtString*);
+static void *(*qt_application)(void);
+static void (*set_app_stylesheet)(void*,const QtString*);
+static QtString *(*get_app_stylesheet)(void*,QtString*);
+static char *original_app_stylesheet;
 static void (*set_updates)(void*,int);
 typedef struct {unsigned message;uintptr_t w;intptr_t l;} StyleMessage;
 typedef struct Theme {void*frame;StyleMessage*messages;int count;intptr_t background;intptr_t original[256][3];intptr_t caret,line_back,line_visible,guides;struct Theme*next;} Theme;
@@ -153,8 +157,34 @@ static int command(void*d,Tcl_Interp*i,int ac,Tcl_Obj*const*av){
  if(ac<2)return fail(i,"Usage: qol_native list|get|replace|mark|clear|save|send ...");
  const char*op=Tcl_GetStringFromObj(av[1],NULL);
  if(!strcmp(op,"options"))return options_command(i,ac,av);
+ if(!strcmp(op,"uistyle")&&ac==3){
+  if(!qt_application||!set_app_stylesheet||!get_app_stylesheet)return fail(i,"Required Qt application styling functions missing");
+  void*app=qt_application();if(!app)return fail(i,"Qt application is unavailable");
+  const char*css=Tcl_GetStringFromObj(av[2],NULL);
+  if(!*css&&!original_app_stylesheet)return 0;
+  if(!original_app_stylesheet){
+   QtString original={0};get_app_stylesheet(app,&original);
+   int n=WideCharToMultiByte(CP_UTF8,0,(WCHAR*)original.ptr,(int)original.size,NULL,0,NULL,NULL);
+   original_app_stylesheet=calloc((size_t)n+1,1);
+   if(!original_app_stylesheet){destroy_string(&original);return fail(i,"Cannot save Qt application stylesheet");}
+   WideCharToMultiByte(CP_UTF8,0,(WCHAR*)original.ptr,(int)original.size,original_app_stylesheet,n,NULL,NULL);
+   destroy_string(&original);
+  }
+  size_t n=strlen(original_app_stylesheet)+strlen(css)+2;
+  char*merged=malloc(n);if(!merged)return fail(i,"Cannot allocate Qt application stylesheet");
+  snprintf(merged,n,"%s\n%s",original_app_stylesheet,css);
+  QtString style={0};string_from_utf8(&style,*css?merged:original_app_stylesheet);
+  set_app_stylesheet(app,&style);destroy_string(&style);free(merged);
+  if(!*css){free(original_app_stylesheet);original_app_stylesheet=NULL;}
+  return 0;
+ }
+ if(!strcmp(op,"uistatus")&&ac==2){
+  if(!qt_application||!get_app_stylesheet)return fail(i,"Required Qt application styling functions missing");
+  QtString style={0};get_app_stylesheet(qt_application(),&style);
+  Tcl_SetObjResult(i,Tcl_NewUnicodeObj(style.ptr,(int)style.size));destroy_string(&style);return 0;
+ }
  QtList l=frames();prune_themes(&l);for(intptr_t j=0;j<l.size;j++)if(engine(l.ptr[j]))repair_theme(l.ptr[j]);
- if(!strcmp(op,"version")){free_list(&l);Tcl_SetObjResult(i,Tcl_NewWideIntObj(14));return 0;}
+ if(!strcmp(op,"version")){free_list(&l);Tcl_SetObjResult(i,Tcl_NewWideIntObj(15));return 0;}
  if(!strcmp(op,"widgets")){QtList ws={0};all_widgets(&ws);Tcl_Obj*r=Tcl_NewListObj(0,NULL);for(intptr_t k=0;k<ws.size;k++){void*w=ws.ptr[k];Tcl_Obj*row=Tcl_NewListObj(0,NULL);append(i,row,Tcl_NewStringObj(widget_class(w),-1));QtString n={0};object_name(w,&n);append(i,row,Tcl_NewUnicodeObj(n.ptr,(int)n.size));destroy_string(&n);append(i,r,row);}free_list(&ws);free_list(&l);Tcl_SetObjResult(i,r);return 0;}
  if(!strcmp(op,"widgetstyle")&&ac==4){const char*cls=Tcl_GetStringFromObj(av[2],NULL);QtString css={0};string_from_utf8(&css,Tcl_GetStringFromObj(av[3],NULL));QtList ws={0};all_widgets(&ws);int count=0;for(intptr_t k=0;k<ws.size;k++)if(!strcmp(widget_class(ws.ptr[k]),cls)){QtString old={0};get_stylesheet(ws.ptr[k],&old);int same=old.size==css.size&&!memcmp(old.ptr,css.ptr,(size_t)css.size*2);destroy_string(&old);if(!same)set_stylesheet(ws.ptr[k],&css);count++;}free_list(&ws);destroy_string(&css);free_list(&l);Tcl_SetObjResult(i,Tcl_NewWideIntObj(count));return 0;}
  if(!strcmp(op,"hover")){poll_hover(&l);free_list(&l);return 0;}
@@ -244,6 +274,9 @@ __declspec(dllexport) int Qolnative_Init(Tcl_Interp*i){
  get_stylesheet=(void*)GetProcAddress(widgets,"?styleSheet@QWidget@@QEBA?AVQString@@XZ");
  set_updates=(void*)GetProcAddress(widgets,"?setUpdatesEnabled@QWidget@@QEAAX_N@Z");
  set_stylesheet=(void*)GetProcAddress(widgets,"?setStyleSheet@QWidget@@QEAAXAEBVQString@@@Z");
+ qt_application=(void*)GetProcAddress(GetModuleHandleA("Qt6Core.dll"),"?instance@QCoreApplication@@SAPEAV1@XZ");
+ set_app_stylesheet=(void*)GetProcAddress(widgets,"?setStyleSheet@QApplication@@QEAAXAEBVQString@@@Z");
+ get_app_stylesheet=(void*)GetProcAddress(widgets,"?styleSheet@QApplication@@QEBA?AVQString@@XZ");
  if(!all_widgets||!class_name||!object_name||!set_stylesheet||!get_stylesheet||!set_updates)return fail(i,"Required Qt theme functions missing");
  cursor_pos=(void*)GetProcAddress(GetModuleHandleA("Qt6Gui.dll"),"?pos@QCursor@@SA?AVQPoint@@XZ");
  map_global=(void*)GetProcAddress(widgets,"?mapFromGlobal@QWidget@@QEBA?AVQPoint@@AEBV2@@Z");

@@ -52,7 +52,7 @@ try {
     $stage = Join-Path $InstallRoot 'app-next'
     Remove-OwnedDirectory $stage $InstallRoot
     Copy-Item -LiteralPath (Join-Path $source 'app') -Destination $stage -Recurse
-    foreach ($relative in @('qolnative-v14.dll','qolpump.dll','qolworker-v3.exe','qol-version-warning.exe')) {
+    foreach ($relative in @('qolnative-v15.dll','qolpump.dll','qolworker-v3.exe','qol-version-warning.exe')) {
         $expected = (Get-FileHash (Join-Path $source "app/$relative") -Algorithm SHA256).Hash
         if ((Get-FileHash (Join-Path $stage $relative) -Algorithm SHA256).Hash -ne $expected) { throw "Copy failed: $relative" }
     }

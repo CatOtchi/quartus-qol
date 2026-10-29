@@ -43,19 +43,23 @@ Go to **Tools → Options → Text Editor → Colors** to pick an editor theme:
 - Catppuccin Latte is light.
 - Tokyo Night Day is light.
 
-The dark menus and toolbars in my screenshots come from my existing Quartus and Qt setup. This plugin changes the editor colors and, if enabled, the Pin Planner assignment table. It doesn't change the rest of Quartus or your font (I recommend you download a nerdfont though as it makes editing easier on the eyes)
+Dark themes now change the menus, toolbars and standard panels too, so you don't need Windows set to dark mode to get a dark Quartus. Pick a light theme or turn enhanced colors off to put the UI back how it was before QOL started. Device diagrams and Windows-native dialogs can still keep their own colors. The plugin doesn't change your font (I recommend you download a nerdfont though as it makes editing easier on the eyes)
 
 The other switches are in Options too:
 
 | Where | What |
 | --- | --- |
 | Text Editor → Autocomplete Text | QOL completion |
-| Text Editor → Formatting | Format on save |
-| Text Editor → Diagnostics | Checking and hover |
+| Text Editor → Formatting | Format on save, indentation width and line length |
+| Text Editor → Diagnostics | Checking, extra Slang warnings and hover delay |
 | Text Editor → Colors | Enhanced colors and the theme preset |
 | Pin Planner | Use the editor theme for assignment rows |
 
 Click **OK** to save or **Cancel** to leave things as they were. Turning enhanced colors off gives control back to Quartus's own color settings. Quartus's original autocomplete switches are separate from the QOL switch.
+
+You can change indentation and line length in Formatting now, so no need to edit a file for those. The controls allow 1 to 16 spaces and 40 to 500 columns. Diagnostics has a switch for Slang's extra warnings and a hover delay of 0 to 5000 milliseconds. These changes don't need a restart, and formatting uses the new values on your next save.
+
+For alignment and other tool arguments, use `user/config.tcl`. The settings you save in Options take priority for the controls shown there, but leave your other arguments alone. Custom theme editing isn't included yet, just the presets above.
 
 If you're upgrading from a release before the theme picker, it keeps the original dark palette. New installs get the light Quartus-style default.
 

@@ -2,6 +2,8 @@
 source [file join [file dirname [info script]] palettes.tcl]
 namespace eval ::quartus_qol {
  variable preference_keys {completion format_on_save diagnostics hover editor_colors pin_planner_colors}
+ variable tool_preference_keys {indentation_spaces column_limit extra_warnings hover_delay}
+ variable integer_limits [dict create indentation_spaces {1 16} column_limit {40 500} hover_delay {0 5000}]
  variable settings_timer {}
  variable preferences_path [file join $user_home preferences.dict]
 }
@@ -11,19 +13,51 @@ proc ::quartus_qol::validate_preferences {data} {
  dict for {key value} $data {
   if {$key eq {theme}} {
    if {$value ni $::quartus_qol::theme_keys} {error "Invalid editor theme: $value"}
-  } elseif {$key ni $preference_keys || $value ni {0 1}} {error "Invalid editor preference: $key"}
+  } elseif {[dict exists $::quartus_qol::integer_limits $key]} {
+   lassign [dict get $::quartus_qol::integer_limits $key] low high
+   if {![string is integer -strict $value] || $value<$low || $value>$high} {error "Invalid editor preference: $key"}
+  } elseif {($key ni $preference_keys && $key ne {extra_warnings}) || $value ni {0 1}} {error "Invalid editor preference: $key"}
   dict set result $key $value
  }
  return $result
 }
+proc ::quartus_qol::tool_preference_defaults {} {
+ variable config
+ if {![dict exists $config format_args]} {dict set config format_args {--indentation_spaces=4 --column_limit=120}}
+ if {![dict exists $config slang_args]} {dict set config slang_args {-Wextra}}
+ foreach key {indentation_spaces column_limit} fallback {4 120} {
+  set value $fallback
+  foreach arg [dict get $config format_args] {if {[regexp "^--${key}=(\[0-9\]+)$" $arg -> n]} {set value $n}}
+  dict set config $key $value
+ }
+ dict set config extra_warnings [expr {{-Wextra} in [dict get $config slang_args]}]
+ if {![dict exists $config hover_delay]} {dict set config hover_delay 400}
+}
+proc ::quartus_qol::apply_tool_preferences {preferences} {
+ variable config
+ foreach key {indentation_spaces column_limit} {
+  if {![dict exists $preferences $key]} {continue}
+  set args {}
+  foreach arg [dict get $config format_args] {if {![string match "--${key}=*" $arg]} {lappend args $arg}}
+  lappend args --${key}=[dict get $preferences $key]
+  dict set config format_args $args
+ }
+ if {[dict exists $preferences extra_warnings]} {
+  set args [lsearch -all -inline -not -exact [dict get $config slang_args] -Wextra]
+  if {[dict get $preferences extra_warnings]} {lappend args -Wextra}
+  dict set config slang_args $args
+ }
+}
 proc ::quartus_qol::load_preferences {} {
  variable preferences_path; variable config
+ tool_preference_defaults
  if {![file exists $preferences_path]} {return}
  set f [open $preferences_path r];set data [read $f];close $f
  set preferences [validate_preferences $data]
  # Older releases always used this palette. Preserve it on upgrades.
  if {![dict exists $preferences theme]} {dict set preferences theme quartus_dark}
  dict for {key value} $preferences {dict set config $key $value}
+ apply_tool_preferences $preferences
 }
 proc ::quartus_qol::save_preferences {data} {
  variable preferences_path
@@ -35,16 +69,20 @@ proc ::quartus_qol::save_preferences {data} {
 }
 proc ::quartus_qol::apply_preferences {values} {
  variable config;variable preference_keys;variable seen;variable themed
- if {[llength $values]!=7} {error {Expected six feature settings and a theme index}}
+ if {[llength $values]!=11} {error {Expected eleven editor settings}}
  set index [lindex $values 6]
  if {![string is integer -strict $index] || $index<0 || $index>=[llength $::quartus_qol::theme_keys]} {error {Invalid theme index}}
  set changes [dict create]
  foreach key $preference_keys value [lrange $values 0 5] {dict set changes $key $value}
  dict set changes theme [lindex $::quartus_qol::theme_keys $index]
+ foreach key $::quartus_qol::tool_preference_keys value [lrange $values 7 10] {dict set changes $key $value}
  set changes [validate_preferences $changes]
  save_preferences $changes
  set previous $config
  dict for {key value} $changes {dict set config $key $value}
+ apply_tool_preferences $changes
+ qol_native hoverdelay [dict get $config hover_delay]
+ if {[dict get $previous extra_warnings]!=[dict get $config extra_warnings]} {set seen [dict create]}
  if {![dict get $config diagnostics]} {
   foreach ed [qol_native list] {qol_native clear [dict get $ed path]}
   qol_native hidehover
@@ -68,6 +106,7 @@ proc ::quartus_qol::settings_poll {} {
  if {!$enabled} {return}
  set values {};foreach key $preference_keys {lappend values [dict get $config $key]}
  lappend values [lsearch -exact $::quartus_qol::theme_keys [dict get $config theme]]
+ foreach key $::quartus_qol::tool_preference_keys {lappend values [dict get $config $key]}
  if {[catch {
   set result [qol_native options poll $values]
   if {[dict exists $result applied]} {apply_preferences [dict get $result applied]}

@@ -1,5 +1,37 @@
-# Presets color the editor and optionally Pin Planner, never the whole Qt UI.
-namespace eval ::quartus_qol {variable themed [dict create]; variable theme_tick 0}
+# Dark presets also color standard Qt controls. Light presets restore the UI.
+namespace eval ::quartus_qol {variable themed [dict create]; variable theme_tick 0;variable ui_theme {}}
+proc ::quartus_qol::ui_stylesheet {palette} {
+ set fg [dict get $palette text];set bg [dict get $palette base]
+ set panel [dict get $palette gutter];set selected [dict get $palette selection]
+ set line [dict get $palette line];set muted [dict get $palette comment]
+ return "/* Quartus QOL dark UI */
+ QWidget {color: $fg; background-color: $bg; selection-color: $fg; selection-background-color: $selected;}
+ QMenuBar, QMenu, QToolBar, QStatusBar, QTabBar, QDockWidget {background-color: $panel;}
+ QMenu::item:selected, QMenuBar::item:selected {background-color: $selected;}
+ QAbstractItemView {background-color: $bg; alternate-background-color: $line;}
+ QAbstractItemView::item:selected {background-color: $selected; color: $fg;}
+ QHeaderView::section {background-color: $line; color: $fg;}
+ QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox {background-color: $panel; color: $fg;}
+ QComboBox, QPushButton {background-color: $line; color: $fg; border: 1px solid $muted; border-radius: 2px;}
+ QComboBox:disabled, QPushButton:disabled, QLabel:disabled, QCheckBox:disabled {color: $muted;}
+ QPushButton:hover, QToolButton:hover {background-color: $selected;}
+ QTabBar::tab {background-color: $panel; color: $fg;}
+ QTabBar::tab:selected {background-color: $line;}
+ QToolTip {color: $fg; background-color: $panel; border: 1px solid $muted;}
+ QScrollBar {background-color: $panel;}
+ QScrollBar::handle {background-color: $selected;}
+ QSplitter::handle {background-color: $line;}
+ "
+}
+proc ::quartus_qol::theme_ui {palette} {
+ variable config;variable ui_theme
+ set theme [dict get $config theme]
+ set dark [expr {[dict get $config editor_colors] && $theme in {quartus_dark catppuccin_frappe nord tokyo_night}}]
+ set target [expr {$dark?$theme:{}}]
+ if {$ui_theme eq $target} {return}
+ qol_native uistyle [expr {$dark?[ui_stylesheet $palette]:{}}]
+ set ui_theme $target
+}
 proc ::quartus_qol::bgr {hex} {
  scan [string trimleft $hex #] %x rgb
  return [expr {(($rgb & 255) << 16) | ($rgb & 65280) | (($rgb >> 16) & 255)}]
@@ -69,6 +101,7 @@ proc ::quartus_qol::theme_poll {} {
  variable themed; variable theme_tick;variable config
  set palette [current_palette]
  set theme [dict get $config theme]
+ theme_ui $palette
  foreach ed [qol_native list] {
   set p [dict get $ed path]
   if {$p eq {}} {continue}

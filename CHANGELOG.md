@@ -1,24 +1,31 @@
 # Changelog
 
+## 0.3.0
+
+- Dark editor presets also color Qt menus, toolbars, panels and dialogs. Light presets and disabling enhanced colors restore the original application stylesheet.
+- Formatting options now include indentation width and line length. Diagnostics options include extra Slang warnings and hover delay.
+- Advanced arguments remain in `user/config.tcl`. Changing the new controls preserves unrelated arguments.
+- Cleaned up the documentation and updated the installation test notes.
+
 ## 0.2.0
 
-- Add an editor theme dropdown under Tools → Options → Text Editor → Colors: Quartus, Quartus Dark, Catppuccin Frappé, Nord, Tokyo Night, Catppuccin Latte and Tokyo Night Day.
-- Fresh installs use the Quartus-style light palette and leave Pin Planner styling off. Upgrades preserve the original dark palette until another preset is selected.
-- Optional Pin Planner styling follows the selected palette. Editor themes preserve the font and do not reskin the surrounding Quartus UI.
+- Added a theme dropdown under Tools → Options → Text Editor → Colors. It offers Quartus, Quartus Dark, Catppuccin Frappé, Nord, Tokyo Night, Catppuccin Latte and Tokyo Night Day.
+- New installs use the light Quartus palette with Pin Planner colors off. Upgrades keep the original dark palette until you select another preset.
+- Pin Planner can use the selected editor palette. Themes don't change the font or the rest of Quartus's UI.
 
 ## 0.1.1
 
-- On untested Quartus builds, show a version warning with Cancel and I understand and continue instead of refusing installation outright.
-- Record acknowledgement for the exact editor/Options binaries; keep native interface checks active and require fresh acknowledgement after a binary change.
-- Allow uninstalling the startup hook after Quartus updates, without requiring the old binary hashes.
+- Added a warning on untested Quartus builds with Cancel and I understand and continue buttons. Earlier versions refused to install on those builds.
+- The installer records acknowledgement for the exact editor and Options DLLs. Native interface checks still run. If either DLL changes, the user must accept the warning again.
+- The uninstaller can remove the startup hook after a Quartus update without requiring the old DLL hashes.
 
 ## 0.1.0
 
 First public Windows package for Quartus Prime Lite 24.1std build 1077.
 
-- Slang diagnostics and stacked hover tooltips after save.
-- Verible format on save with asynchronous results and stale-edit protection.
-- Syntax roles, bracket/block depth colors and readable Pin Planner rows.
-- Case-insensitive fuzzy lexical completion using the native popup.
-- Feature switches in Quartus Tools → Options.
-- Per-user install, verified automatic dependency downloads, repeatable upgrades and reversible startup hook.
+- Slang checks files after save and shows messages in hover tooltips.
+- Verible formats on save in the background. QOL discards results if the source has changed since formatting started.
+- The editor colors syntax roles and nested brackets and blocks. Pin Planner has optional row colors.
+- Autocomplete uses the native popup and matches parts of names without regard to case.
+- Settings appear in Quartus Tools → Options.
+- The installer downloads and verifies tools for the current user. It preserves settings during upgrades and adds a startup hook that the uninstaller can remove.

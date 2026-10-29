@@ -2,8 +2,12 @@
  * Only our own AFCQ_TREE_PAGE instances get a cloned virtual table. Existing
  * Quartus instances, executable pages, binaries and shared tables are untouched.
  */
-enum {OPT_COMPLETION,OPT_FORMAT,OPT_DIAGNOSTICS,OPT_HOVER,OPT_COLORS,OPT_PINS,OPT_THEME,OPT_COUNT};
+enum {OPT_COMPLETION,OPT_FORMAT,OPT_DIAGNOSTICS,OPT_HOVER,OPT_COLORS,OPT_PINS,OPT_THEME,OPT_INDENT,OPT_COLUMNS,OPT_WARNINGS,OPT_DELAY,OPT_COUNT};
 enum {THEME_COUNT=7};
+static void (*qt_spin_ctor)(void*,void*);
+static int (*qt_spin_value)(void*);
+static void (*qt_spin_set)(void*,int);
+static void (*qt_spin_range)(void*,int,int);
 static void (*qt_combo_ctor)(void*,void*);
 static void (*qt_combo_add)(void*,const QtString*,const void*);
 static int (*qt_combo_index)(void*);
@@ -36,22 +40,24 @@ static void*(*af_add_page)(void*,void*,void*,int);
 static void (*af_enable_apply)(void*);
 static void (*af_changed)(void*);
 static void* af_base_vtable;
-typedef struct OptionSession {void*sheet;void*checks[OPT_COUNT];void*theme_combo;void*pages[6];void**tables[6];int baseline[OPT_COUNT];DWORD created_at;struct OptionSession*next;} OptionSession;
+typedef struct OptionSession {void*sheet;void*checks[OPT_COUNT];void*spins[OPT_COUNT];void*theme_combo;void*pages[6];void**tables[6];int baseline[OPT_COUNT];DWORD created_at;struct OptionSession*next;} OptionSession;
 static OptionSession*option_sessions;
 static int option_pending,option_values[OPT_COUNT],options_ready;
-static int options_current[OPT_COUNT]={1,1,1,1,1,0,0},options_busy;
+static int options_current[OPT_COUNT]={1,1,1,1,1,0,0,4,120,1,400},options_busy;
 static UINT_PTR options_timer;
-static const char*option_keys[]={"completion","format_on_save","diagnostics","hover","editor_colors","pin_planner_colors","theme"};
+static const char*option_keys[]={"completion","format_on_save","diagnostics","hover","editor_colors","pin_planner_colors","theme","indentation_spaces","column_limit","extra_warnings","hover_delay"};
+static int option_min(int k){return k==OPT_INDENT?1:k==OPT_COLUMNS?40:0;}
+static int option_max(int k){return k==OPT_THEME?THEME_COUNT-1:k==OPT_INDENT?16:k==OPT_COLUMNS?500:k==OPT_DELAY?5000:1;}
 static int qt_string_equals(QtString*s,const char*ascii){size_t n=strlen(ascii);if((size_t)s->size!=n)return 0;for(size_t k=0;k<n;k++)if(s->ptr[k]!=(unsigned char)ascii[k])return 0;return 1;}
 static int qt_list_contains(QtList*l,void*w){for(intptr_t k=0;k<l->size;k++)if(l->ptr[k]==w)return 1;return 0;}
 static void name_widget(void*w,const char*name){QtString s={0};string_from_utf8(&s,name);qt_name(w,&s);destroy_string(&s);}
-static int option_value(OptionSession*s,int k){if(k==OPT_THEME)return s->theme_combo?qt_combo_index(s->theme_combo):s->baseline[k];return s->checks[k]?!!qt_checked(s->checks[k]):s->baseline[k];}
+static int option_value(OptionSession*s,int k){if(k==OPT_THEME)return s->theme_combo?qt_combo_index(s->theme_combo):s->baseline[k];if(s->spins[k])return qt_spin_value(s->spins[k]);return s->checks[k]?!!qt_checked(s->checks[k]):s->baseline[k];}
 static int options_changed(OptionSession*s){for(int k=0;k<OPT_COUNT;k++)if(option_value(s,k)!=s->baseline[k])return 1;return 0;}
 static OptionSession*session_for_page(void*p){for(OptionSession*s=option_sessions;s;s=s->next)for(int k=0;k<6;k++)if(s->pages[k]==p)return s;return NULL;}
 static int option_page_changed(void*p){OptionSession*s=session_for_page(p);return s?options_changed(s):0;}
 static void option_commit(void*p){OptionSession*s=session_for_page(p);if(!s||!options_changed(s))return;for(int k=0;k<OPT_COUNT;k++){option_values[k]=option_value(s,k);s->baseline[k]=option_values[k];options_current[k]=option_values[k];}option_pending=1;}
 static int option_accept(void*p){option_commit(p);return 1;}
-static void option_reject(void*p){OptionSession*s=session_for_page(p);if(s){for(int k=0;k<OPT_THEME;k++)if(s->checks[k])qt_set_checked(s->checks[k],s->baseline[k]);if(s->theme_combo)qt_combo_set(s->theme_combo,s->baseline[OPT_THEME]);}}
+static void option_reject(void*p){OptionSession*s=session_for_page(p);if(s){for(int k=0;k<OPT_COUNT;k++){if(s->checks[k])qt_set_checked(s->checks[k],s->baseline[k]);if(s->spins[k])qt_spin_set(s->spins[k],s->baseline[k]);}if(s->theme_combo)qt_combo_set(s->theme_combo,s->baseline[OPT_THEME]);}}
 static void*new_group(void*parent,const char*title){
  void*group=calloc(1,4096);void*layout=calloc(1,4096);if(!group||!layout){free(group);free(layout);return NULL;}
  QtString t={0};string_from_utf8(&t,title);qt_group_ctor(group,&t,parent);destroy_string(&t);qt_vbox_ctor(layout,group);
@@ -76,6 +82,15 @@ static int new_theme_combo(OptionSession*s,void*group){
  uint64_t empty_variant[4]={0};
  for(int k=0;k<THEME_COUNT;k++){string_from_utf8(&text,names[k]);qt_combo_add(combo,&text,empty_variant);destroy_string(&text);}
  qt_combo_set(combo,s->baseline[OPT_THEME]);qt_layout_add(qt_layout(group),combo);qt_show(combo);s->theme_combo=combo;return 1;
+}
+static int new_spin(OptionSession*s,int k,void*group,const char*label){
+ if(!group)return 0;
+ void*l=calloc(1,4096);void*spin=calloc(1,4096);if(!l||!spin){free(l);free(spin);return 0;}
+ QtString text={0};string_from_utf8(&text,label);qt_label_ctor(l,&text,group,0);destroy_string(&text);
+ qt_layout_add(qt_layout(group),l);qt_show(l);qt_spin_ctor(spin,group);
+ char name[128];snprintf(name,sizeof(name),"quartus_qol_%s",option_keys[k]);name_widget(spin,name);
+ qt_spin_range(spin,option_min(k),option_max(k));qt_spin_set(spin,s->baseline[k]);
+ qt_layout_add(qt_layout(group),spin);qt_show(spin);s->spins[k]=spin;return 1;
 }
 static void*new_option_page(OptionSession*s,int index,int id,const char*title,void*parent_page){
  /* AFCQ_TREE_PAGE is 0x40 bytes in the pinned build. Reserve extra constructor
@@ -124,9 +139,13 @@ static int attach_options(OptionSession*s,QtList*ws){
  void*dl=qt_layout(diagnostics);if(!dl){dl=calloc(1,4096);qt_vbox_ctor(dl,diagnostics);}
  void*fg=new_group(format,"SystemVerilog and Verilog formatting");
  new_check(s,OPT_FORMAT,fg,"Format automatically when saving (Verible)");
+ new_spin(s,OPT_INDENT,fg,"Indentation width (spaces):");
+ new_spin(s,OPT_COLUMNS,fg,"Line length (columns):");
  void*dg=new_group(diagnostics,"SystemVerilog and Verilog diagnostics");
  new_check(s,OPT_DIAGNOSTICS,dg,"Check saved files and underline errors and warnings (slang)");
  new_check(s,OPT_HOVER,dg,"Show diagnostic details when hovering over underlined code");
+ new_check(s,OPT_WARNINGS,dg,"Enable extra Slang warnings (-Wextra)");
+ new_spin(s,OPT_DELAY,dg,"Hover delay (milliseconds):");
  qt_box_stretch(fl,1);qt_box_stretch(dl,1);
  void*colors=colors_page?af_page_ui(colors_page):new_option_page(s,3,0x514f4c03,"Colors",editor_page);
  if(colors&&qt_layout(colors)){
@@ -185,8 +204,8 @@ static int options_command(Tcl_Interp*i,int ac,Tcl_Obj*const*av){
    }
   }
  }else if(!strcmp(op,"poll")&&ac==4){
-  int count;Tcl_Obj**values;if(Tcl_ListObjGetElements(i,av[3],&count,&values)||count!=OPT_COUNT){free_list(&ws);return fail(i,"Expected six feature values and a theme index");}
-  int current[OPT_COUNT];for(int k=0;k<OPT_COUNT;k++){int64_t v;if(Tcl_GetWideIntFromObj(i,values[k],&v)){free_list(&ws);return 1;}if(k==OPT_THEME&&(v<0||v>=THEME_COUNT)){free_list(&ws);return fail(i,"Invalid theme index");}current[k]=k==OPT_THEME?(int)v:!!v;}
+  int count;Tcl_Obj**values;if(Tcl_ListObjGetElements(i,av[3],&count,&values)||count!=OPT_COUNT){free_list(&ws);return fail(i,"Expected eleven editor settings");}
+  int current[OPT_COUNT];for(int k=0;k<OPT_COUNT;k++){int64_t v;if(Tcl_GetWideIntFromObj(i,values[k],&v)){free_list(&ws);return 1;}if(v<option_min(k)||v>option_max(k)){free_list(&ws);return fail(i,"Editor setting out of range");}current[k]=(int)v;}
   if(!option_pending)memcpy(options_current,current,sizeof(current));
   if(!options_timer)options_timer=SetTimer(NULL,0,300,options_tick);
   pair(i,r,"attached",Tcl_NewWideIntObj(options_native_scan(&ws)));
@@ -205,6 +224,10 @@ static void init_options(void){
  OPT_BIND(w,qt_vbox_ctor,"??0QVBoxLayout@@QEAA@PEAVQWidget@@@Z");
  OPT_BIND(w,qt_group_ctor,"??0QGroupBox@@QEAA@AEBVQString@@PEAVQWidget@@@Z");
  OPT_BIND(w,qt_check_ctor,"??0QCheckBox@@QEAA@AEBVQString@@PEAVQWidget@@@Z");
+ OPT_BIND(w,qt_spin_ctor,"??0QSpinBox@@QEAA@PEAVQWidget@@@Z");
+ OPT_BIND(w,qt_spin_value,"?value@QSpinBox@@QEBAHXZ");
+ OPT_BIND(w,qt_spin_set,"?setValue@QSpinBox@@QEAAXH@Z");
+ OPT_BIND(w,qt_spin_range,"?setRange@QSpinBox@@QEAAXHH@Z");
  OPT_BIND(w,qt_combo_ctor,"??0QComboBox@@QEAA@PEAVQWidget@@@Z");
  OPT_BIND(w,qt_combo_add,"?addItem@QComboBox@@QEAAXAEBVQString@@AEBVQVariant@@@Z");
  OPT_BIND(w,qt_combo_index,"?currentIndex@QComboBox@@QEBAHXZ");
