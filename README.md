@@ -1,6 +1,6 @@
 # Quartus QOL
 
-Quartus's editor is shit. I got tired of compiling just to catch a typo and lining everything up by hand, so I made this.
+Quartus's editor lacks the features a modern developer expects. I got tired of compiling just to catch a typo and lining everything up by hand, so I made this.
 
 It adds these to Quartus's own editor:
 
